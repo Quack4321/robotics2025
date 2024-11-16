@@ -20,23 +20,28 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
-
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 @TeleOp
 
-public class    BasicDrive extends OpMode {
+public class Drive extends OpMode {
     /* Declare OpMode members. */
 
     DcMotor frontRight;
     DcMotor frontLeft;
     DcMotor backRight;
     DcMotor backLeft;
+    DcMotor grabExtend;
+
+    DcMotor grabPivot;
+    DcMotor pullPivot;
+    // DcMotor pullExtend;
+
+    Servo wrist;
+
+    Servo spinny;
 
 
     int level;
@@ -76,23 +81,33 @@ public class    BasicDrive extends OpMode {
         telemetry.addData("Status", "Initialized");
 
         // Initialize hardware variable values:
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");                  // Control Hub motor port 0
-        backRight = hardwareMap.get(DcMotor.class, "backRight");                // Control Hub motor port 1
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");                // Control Hub motor port 2
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");              // Control Hub motor port 3
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");                  // Control Hub 3
+        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");                // Control Hub 2
+        backRight = hardwareMap.get(DcMotor.class, "backRight");                // Control Hub 1
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");              // Control Hub 0
+
+        grabExtend = hardwareMap.get(DcMotor.class, "grabExtend");              // Extension Hub 0
+        grabPivot = hardwareMap.get(DcMotor.class, "grabPivot");                // Extension Hub 1
+        pullPivot = hardwareMap.get(DcMotor.class, "pullPivot");                // Extension Hub 2
+        // pullExtend = hardwareMap.get(DcMotor.class, "pullExtend");                      // Extension Hub 3
+        wrist = hardwareMap.get(Servo.class, "wrist");
+        spinny = hardwareMap.get(Servo.class, "spinny");
+
+        wrist.setPosition(0);
+        spinny.setPosition(0);
 
         level = 1;
-        speed = new float[] {.25f, .5f, .75f, 1.0f};
+        speed = new float[]{.25f, .5f, .75f, 1.0f};
 
         // Sets these motors to brake upon zero power:
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        // Sets these motors to run the direction WE want:
-        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+//        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//
+//        // Sets these motors to run the direction WE want:
+//        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+//        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
     }
 
@@ -121,14 +136,14 @@ public class    BasicDrive extends OpMode {
     @Override
     public void loop() {
         // Displays info on Driver Hub:
-        telemetry.addData("Speed", speed[level]*100 + "%"); // Tells us the wheel motors' current speed
+        telemetry.addData("Speed", speed[level] * 100 + "%"); // Tells us the wheel motors' current speed
 
-        // Changes speed if driver1 presses left/right bumper:
         if (gamepad1.right_bumper && !rightBumperLastTime) {
-            if (level != 3) {
+            if (level != speed.length - 1) {
                 level++;
             }
         }
+
         if (gamepad1.left_bumper && !leftBumperLastTime) {
             if (level != 0) {
                 level--;
@@ -136,21 +151,34 @@ public class    BasicDrive extends OpMode {
         }
 
         // Robot strafes if driver1 holds left/right trigger. Drives normally with joysticks if triggers are not pressed
-        if ((gamepad1.left_trigger == 0) && (gamepad1.right_trigger == 0)) {
-            // Multiplying by speeds[level] will make the wheels' speed whatever the current element speeds[level] is.
-            // For our robot, we have 25%, 50%, 75%, and 100% speed.
-                frontRight.setPower((gamepad1.right_stick_y) * speed[level]);
-                backRight.setPower((gamepad1.right_stick_y) * speed[level]);
-                frontLeft.setPower((gamepad1.left_stick_y) * speed[level]);
-                backLeft.setPower((gamepad1.left_stick_y) * speed[level]);
-            } else {
-            // This is what allows the robot to strafe.
-            // If the left trigger is pressed, the robot will go left.
-            // If the right trigger is pressed, the robot will go right.
-            frontRight.setPower((gamepad1.right_trigger - gamepad1.left_trigger) * speed[level]);
-            backLeft.setPower((gamepad1.right_trigger - gamepad1.left_trigger) * speed[level]);
-            frontLeft.setPower((gamepad1.left_trigger - gamepad1.right_trigger) * speed[level]);
-            backRight.setPower((gamepad1.left_trigger - gamepad1.right_trigger) * speed[level]);
+        frontLeft.setPower((gamepad1.left_stick_y + (gamepad1.left_trigger - gamepad1.right_trigger)) * speed[level]);
+        backLeft.setPower((gamepad1.left_stick_y + (gamepad1.right_trigger - gamepad1.left_trigger)) * speed[level]);
+        frontRight.setPower((gamepad1.right_stick_y + (gamepad1.right_trigger - gamepad1.left_trigger)) * speed[level]);
+        backRight.setPower((gamepad1.right_stick_y + (gamepad1.left_trigger - gamepad1.right_trigger)) * speed[level]);
+
+
+        if (gamepad2.right_bumper) {
+            grabExtend.setPower(1.0);
+        } else if (gamepad2.left_bumper) {
+            grabExtend.setPower(-1.0);
+        } else {
+            grabExtend.setPower(0);
+        }
+
+        grabPivot.setPower(gamepad2.right_trigger - gamepad2.left_trigger);
+
+        if (gamepad2.a && !aLastTime2) {
+            spinny.setPosition(1.0);
+        }
+        if (gamepad2.x && !xLastTime2) {
+            spinny.setPosition(0);
+        }
+
+        if (gamepad2.y && !yLastTime2) {
+            wrist.setPosition(.2);
+        }
+        if (gamepad2.b && !bLastTime2) {
+            wrist.setPosition(0);
         }
 
         // The LastTime variables check if a particular button was pressed in the previous loop.
