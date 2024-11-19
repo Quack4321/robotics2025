@@ -37,16 +37,28 @@ public class Drive extends OpMode {
 
     DcMotor grabPivot;
     DcMotor pullPivot;
-    // DcMotor pullExtend;
+    DcMotor pullExtend;
 
     Servo wrist;
-
     Servo spinny;
 
-
-    int level;
+    int speedIndex;
     float[] speed;
 
+    // Predefined positions of the motors:
+    int pullPivotRest;
+    int pullPivotPull;
+    int pullPivotClimb;
+    int pullExtendIn;
+    int pullExtendOut;
+    int grabPivotRest;
+    int grabPivotGrab;
+    int grabPivotScore;
+    int grabExtendIn;
+    int grabExtendOut;
+    int wristRest;
+    int wristGrab;
+    int wristScore;
 
     // Controller 1 Variables:
     boolean rightBumperLastTime;
@@ -80,7 +92,10 @@ public class Drive extends OpMode {
     public void init() {
         telemetry.addData("Status", "Initialized");
 
-        // Initialize hardware variable values:
+        speed = new float[]{.25f, .5f, .75f, 1.0f};
+        speedIndex = 3;
+
+        // Initialize hardware values
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");                  // Control Hub 3
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");                // Control Hub 2
         backRight = hardwareMap.get(DcMotor.class, "backRight");                // Control Hub 1
@@ -89,26 +104,38 @@ public class Drive extends OpMode {
         grabExtend = hardwareMap.get(DcMotor.class, "grabExtend");              // Extension Hub 0
         grabPivot = hardwareMap.get(DcMotor.class, "grabPivot");                // Extension Hub 1
         pullPivot = hardwareMap.get(DcMotor.class, "pullPivot");                // Extension Hub 2
-        // pullExtend = hardwareMap.get(DcMotor.class, "pullExtend");                      // Extension Hub 3
-        wrist = hardwareMap.get(Servo.class, "wrist");
-        spinny = hardwareMap.get(Servo.class, "spinny");
+        pullExtend = hardwareMap.get(DcMotor.class, "pullExtend");              // Extension Hub 3
+
+        wrist = hardwareMap.get(Servo.class, "wrist");                          // Extension Hub 0
+        spinny = hardwareMap.get(Servo.class, "spinny");                        // Extension Hub 1
 
         wrist.setPosition(0);
         spinny.setPosition(0);
 
-        level = 1;
-        speed = new float[]{.25f, .5f, .75f, 1.0f};
-
         // Sets these motors to brake upon zero power:
-//        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//
-//        // Sets these motors to run the direction WE want:
-//        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-//        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        // Sets these motors to run in correct direction:
+        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        // Predefined motor positions:
+        pullPivotRest = 0;
+        pullPivotPull = 0;
+        pullPivotClimb = 0;
+        pullExtendIn = 0;
+        pullExtendOut = 0;
+        grabPivotRest = 0;
+        grabPivotGrab = 0;
+        grabPivotScore = 0;
+        grabExtendIn = 0;
+        grabExtendOut = 0;
+        wristRest = 0;
+        wristGrab = 0;
+        wristScore = 0;
     }
 
     /*
@@ -136,54 +163,55 @@ public class Drive extends OpMode {
     @Override
     public void loop() {
         // Displays info on Driver Hub:
-        telemetry.addData("Speed", speed[level] * 100 + "%"); // Tells us the wheel motors' current speed
+        telemetry.addData("Speed", speed[speedIndex] * 100 + "%"); // Tells us the wheel motors' current speed
 
         if (gamepad1.right_bumper && !rightBumperLastTime) {
-            if (level != speed.length - 1) {
-                level++;
+            if (speedIndex != speed.length - 1) {
+                speedIndex++;
             }
         }
 
         if (gamepad1.left_bumper && !leftBumperLastTime) {
-            if (level != 0) {
-                level--;
+            if (speedIndex != 0) {
+                speedIndex--;
             }
         }
 
         // Robot strafes if driver1 holds left/right trigger. Drives normally with joysticks if triggers are not pressed
-        frontLeft.setPower((gamepad1.left_stick_y + (gamepad1.left_trigger - gamepad1.right_trigger)) * speed[level]);
-        backLeft.setPower((gamepad1.left_stick_y + (gamepad1.right_trigger - gamepad1.left_trigger)) * speed[level]);
-        frontRight.setPower((gamepad1.right_stick_y + (gamepad1.right_trigger - gamepad1.left_trigger)) * speed[level]);
-        backRight.setPower((gamepad1.right_stick_y + (gamepad1.left_trigger - gamepad1.right_trigger)) * speed[level]);
+        frontLeft.setPower((gamepad1.left_stick_y + (gamepad1.left_trigger - gamepad1.right_trigger)) * speed[speedIndex]);
+        backLeft.setPower((gamepad1.left_stick_y + (gamepad1.right_trigger - gamepad1.left_trigger)) * speed[speedIndex]);
+        frontRight.setPower((gamepad1.right_stick_y + (gamepad1.right_trigger - gamepad1.left_trigger)) * speed[speedIndex]);
+        backRight.setPower((gamepad1.right_stick_y + (gamepad1.left_trigger - gamepad1.right_trigger)) * speed[speedIndex]);
 
+        pullPivot.setPower(gamepad2.left_stick_y);
+        pullExtend.setPower(gamepad2.right_stick_x);
 
-        if (gamepad2.right_bumper) {
-            grabExtend.setPower(1.0);
-        } else if (gamepad2.left_bumper) {
-            grabExtend.setPower(-1.0);
-        } else {
-            grabExtend.setPower(0);
+        grabPivot.setPower(gamepad2.right_stick_y);
+        grabExtend.setPower(gamepad2.right_stick_x);
+
+        if (gamepad2.dpad_up && !dpadUpLastTime2) {
+            if (spinny.getPosition() == 0) {
+                spinny.setPosition(1.0);
+            }
+            else if (spinny.getPosition() == 1.0) {
+                spinny.setPosition(0);
+            }
         }
 
-        grabPivot.setPower(gamepad2.right_trigger - gamepad2.left_trigger);
+        if (gamepad2.dpad_down && !dpadDownLastTime2) {
+            if (wrist.getPosition() == 0) {
+                wrist.setPosition(.2);
+            }
+            else if (wrist.getPosition() == .2) {
+                wrist.setPosition(0);
+            }
+        }
 
         if (gamepad2.a && !aLastTime2) {
-            spinny.setPosition(1.0);
+            pullPivot.setTargetPosition(pullPivotRest);
+            grabPivot.setTargetPosition(grabPivotRest);
+            wrist.setPosition(wristRest);
         }
-        if (gamepad2.x && !xLastTime2) {
-            spinny.setPosition(0);
-        }
-
-        if (gamepad2.y && !yLastTime2) {
-            wrist.setPosition(.2);
-        }
-        if (gamepad2.b && !bLastTime2) {
-            wrist.setPosition(0);
-        }
-
-        // The LastTime variables check if a particular button was pressed in the previous loop.
-        // Due to our implementation of these, if a button was pressed in a previous loop,
-        // then continuing to hold the button for a bit will not spam the function.
 
         aLastTime = gamepad1.a;
         bLastTime = gamepad1.b;
