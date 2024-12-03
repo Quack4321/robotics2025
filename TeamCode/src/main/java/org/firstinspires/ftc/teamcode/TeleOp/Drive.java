@@ -26,6 +26,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.acmerobotics.dashboard.FtcDashboard;
+
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -113,6 +115,12 @@ public class Drive extends OpMode {
         frontRight.setPower(((gamepad1.left_stick_y + gamepad1.right_stick_x) + (-gamepad1.left_trigger + gamepad1.right_trigger))*speeds[level]);
         backRight.setPower(speeds[level]*((gamepad1.left_stick_y + gamepad1.right_stick_x) + (-gamepad1.right_trigger + gamepad1.left_trigger)));
         */
+
+        telemetry.addData("FrontRight", frontRight.getPower());
+        telemetry.addData("FrontLeft", frontLeft.getPower());
+        telemetry.addData("BackRight", backRight.getPower());
+        telemetry.addData("BackLeft", backLeft.getPower());
+
         if (gamepad1.dpad_right){
             arm.setPower(0.5);
         } else {
